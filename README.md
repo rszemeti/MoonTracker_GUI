@@ -23,3 +23,5 @@ The remote hardware is based on an Arduino Nano with comms over a serial interfa
 My specific application uses DC servos and resolvers for feedback, the Nano drives the resolvers, reads the returning sin/cos amplitudes and calculates the absolute positions from the arctans. It would be a simple modification to use potentiometers and A/D conversion for position monitoring.  The resolvers give ~0.2 degree resolution.
 
 A PID servo loop provides direction and PWM to control the DC servo motors.  Again, you could easily modify this to drive stepper motors if you wanted.
+
+Thnaks to Andy Pugh of LinucCNC fame for the original base code for the resolvers, which I butchered a lot for my application.
