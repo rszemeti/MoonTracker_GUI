@@ -1,6 +1,8 @@
 # MoonTracker_GUI
 Python GUI for the Moontracker controller
 
+![Moontracker GUI](https://raw.githubusercontent.com/rszemeti/MoonTracker_GUI/main/images/Screenshot.JPG)
+
 This should run on pretty much anything that can run Python in a graphical enviroment.
 
 I choose to run it on a PC to keep shack clutter low, but you could equally well run it on a RpaspberryPi with a touchscreen for a stand alone controller.
