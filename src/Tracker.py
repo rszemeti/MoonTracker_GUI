@@ -36,8 +36,7 @@ class Target:
         # 52.388211 N, 2.304344 W, 69m above sea level
         self.wgs = wgs84.latlon(52.388211 * N, 2.304344 * W, 69)
         self.home = self.earth + self.wgs
- 
-        
+     
         
     def run(self,window):
         while True:
