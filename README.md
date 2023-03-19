@@ -14,7 +14,7 @@ The display is simple enough,  shows you the target you have selected, rise and 
 "align" causes the current position to become the target position, so just select "moon" or some other object, jog the dish until you are happy with the current alignment, press "Align" and the current position and target position will become equal.
  Pressing "Track" will cause the dish to then actively track the object using the offsets just set.  The offsets are stored in EEPROM on the controller, so they will be stored next time you connect.
  
-#Hardware
+# Hardware
 
 The remote hardware is based on an Arduino Nano with comms over a serial interface.
 
