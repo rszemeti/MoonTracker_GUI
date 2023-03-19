@@ -255,6 +255,8 @@ void estop(){
    status=ESTOP;
    analogWrite(pwmPin[0], 0);
    analogWrite(pwmPin[1], 0);
+   digitalWrite(directionPin[0], LOW);
+   digitalWrite(directionPin[1], LOW);
    Serial.println("STATUS,STOP");
 }
 
