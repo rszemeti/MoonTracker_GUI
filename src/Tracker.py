@@ -1,6 +1,5 @@
 import PySimpleGUI as sg
 import serial
-import skyfield
 from skyfield.api import N, W, wgs84, load
 from skyfield import almanac
 import time
@@ -40,8 +39,8 @@ class Target:
         
     def run(self, window):
         while True:
-            time.sleep(1)
-            window.write_event_value(('-TARGET-', self.observe()), 'Done!')  
+            window.write_event_value(('-TARGET-', self.observe()), 'Done!')
+            time.sleep(1)  
         
     def observe(self): 
         t = self.ts.now()
@@ -67,8 +66,8 @@ class Target:
         return self.planets
     
     def get_rise_set(self):
-        t0 = self.ts.now()
-        t1 = t0 + timedelta(hours=24)
+        t0 = self.ts.now() - timedelta(minutes=30)
+        t1 = t0 + timedelta(hours=25)
         f = almanac.risings_and_settings(self.planets, self.target, self.wgs)
         t, y = almanac.find_discrete(t0, t1, f)
         return zip(t, y)  
@@ -255,7 +254,7 @@ def the_gui():
         elif event == 'Moon':
             update_target(window, target.observe())
         elif event[0] == '-THREAD-':
-            processData(window, event[1])
+            process_data(window, event[1])
         elif event[0] == '-TARGET-':
             update_target(window, event[1])
         elif event == '-TARGETNAME-':
@@ -282,6 +281,7 @@ def update_target(window, data):
     window['-TAR_AZ-'].update('{0:.2f}'.format(data[1]))
     rise = ''
     sets = ''
+    update_rise_set(window)
     for ti, yi in target.get_rise_set():
         if yi:
             rise = ti - target.ts.now()
@@ -289,29 +289,37 @@ def update_target(window, data):
         else:
             sets = ti - target.ts.now()
             sets = divmod(sets * 24 * 60, 60)
-    try:
-        if target.is_above_horizon:
+            
+    if target.is_above_horizon:
+        try:
             window['-VERBOSE-'].update(target.human_name + ' is above the horizon and sets in ' + str(int(sets[0])) + ' hours and ' + str(int(sets[1])) + ' minutes')
-        else:
-            window['-VERBOSE-'].update(target.human_name + ' is below the horizon and rises in ' + str(int(rise[0])) + ' hours and ' + str(int(sets[1])) + ' minutes')
-    except Exception as e:
-        sg.eprint("Failed above/below")
-        sg.eprint(e)
-    window['-UTC-'].update(data[3])
+        except Exception as e:
+            sg.eprint("Failed above")
+            sg.eprint(e)
+            sg.eprint(target.ts.now().utc_datetime())
+    else:
+        try:
+            window['-VERBOSE-'].update(target.human_name + ' is below the horizon and rises in ' + str(int(rise[0])) + ' hours and ' + str(int(rise[1])) + ' minutes')
+        except Exception as e:
+            sg.eprint("Failed below")
+            sg.eprint(e)
+            sg.eprint(target.ts.now().utc_datetime())
+
+    window['-UTC-'].update(data[3].strftime("%Y-%m-%dT%H:%M:%SZ"))
     if conn.is_running():
         conn.send('E{0:.2f}\n'.format(data[0]));
         conn.send('A{0:.2f}\n'.format(data[1]));
 
 
-def processData(window, data):
-    foo = data.split(',')
+def process_data(window, data):
+    remote_data = data.split(',')
 
-    if foo[0] == "POS":
-        window['-CUR_EL-'].update('{0:.2f}'.format(float(foo[2])))
-        window['-CUR_AZ-'].update('{0:.2f}'.format(float(foo[1])))
+    if remote_data[0] == "POS":
+        window['-CUR_EL-'].update('{0:.2f}'.format(float(remote_data[2])))
+        window['-CUR_AZ-'].update('{0:.2f}'.format(float(remote_data[1])))
         
-    elif foo[0] == 'STATUS':
-        stat = foo[1].rstrip()
+    elif remote_data[0] == 'STATUS':
+        stat = remote_data[1].rstrip()
         if stat == 'RUN':
             window['Stop'].update(disabled=False)
             window['Align'].update(disabled=True)
