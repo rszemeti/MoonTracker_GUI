@@ -1,5 +1,6 @@
 import PySimpleGUI as sg
 import serial
+import serial.tools.list_ports
 from skyfield.api import N, W, wgs84, load
 from skyfield import almanac
 import time
@@ -143,11 +144,15 @@ class Device:
                 self.error='Closed unexpectedly'
                 self.running = False
                 self.ser.close()
+    
+    def get_ports(self):
+        return serial.tools.list_ports.comports()
 
         
     def __del__(self):
         self.running = False
         self.ser.close()
+        
 
         
 def get_cal_popup():
@@ -215,7 +220,7 @@ def the_gui():
               ],
               [sg.Text('Next ...', key='-VERBOSE-')],
               [sg.Text('Port'),
-                  sg.Input(default_text='COM9', key='-PORT-', size=(6, 1)),
+                  sg.Combo(conn.get_ports(), key='-PORT-', size=(15, 1)),
                   sg.Button('Connect', bind_return_key=True),
                   sg.Button('Disconnect', disabled=True),
               ]
@@ -232,7 +237,8 @@ def the_gui():
         if event in (sg.WIN_CLOSED, 'Exit'):
             break
         elif event == 'Connect':
-            portId = values['-PORT-']
+            ports = conn.get_ports()
+            portId = values['-PORT-'].device
             if not conn.is_running():
                 conn.stop()
                 conn.set_port(portId)
@@ -322,6 +328,11 @@ def process_data(window, data):
         
     elif remote_data[0] == 'STATUS':
         stat = remote_data[1].rstrip()
+        if stat == 'INIT':
+            window['Stop'].update(disabled=True)
+            window['Align'].update(disabled=True)
+            window['Track'].update(disabled=True)
+            window['-STATUS-'].update('Initialising')
         if stat == 'RUN':
             window['Stop'].update(disabled=False)
             window['Align'].update(disabled=True)

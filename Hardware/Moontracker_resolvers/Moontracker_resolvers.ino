@@ -84,7 +84,7 @@ void setup() {
 
   Serial.begin(115200);  // connect to the serial port
   Serial.println("# Resolver based servo");
-
+   Serial.println("STATUS,INIT");
   int eepromAdrr = 0;
 
   for(int i=0; i<=1; i++){
