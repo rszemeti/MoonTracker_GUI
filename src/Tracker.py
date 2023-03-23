@@ -67,7 +67,7 @@ class Target:
     
     def get_rise_set(self):
         t0 = self.ts.now() - timedelta(minutes=30)
-        t1 = t0 + timedelta(hours=25)
+        t1 = t0 + timedelta(hours=36)
         f = almanac.risings_and_settings(self.planets, self.target, self.wgs)
         t, y = almanac.find_discrete(t0, t1, f)
         return zip(t, y)  
@@ -267,28 +267,23 @@ def the_gui():
 
 
 def update_rise_set(window):
-        window['-RISE-'].update('---')
-        window['-SET-'].update('---')
-        for ti, yi in target.get_rise_set():
-            if yi:
-                window['-RISE-'].update(ti.utc_iso())
-            else:
-                window['-SET-'].update(ti.utc_iso())
-
-
-def update_target(window, data):
-    window['-TAR_EL-'].update('{0:.2f}'.format(data[0]))
-    window['-TAR_AZ-'].update('{0:.2f}'.format(data[1]))
-    rise = ''
-    sets = ''
-    update_rise_set(window)
+    window['-RISE-'].update('---')
+    window['-SET-'].update('---')
+    rise_t=None
+    rise=[]
+    sets_t=None
+    sets=[]
     for ti, yi in target.get_rise_set():
         if yi:
-            rise = ti - target.ts.now()
-            rise = divmod(rise * 24 * 60, 60)
+            if rise_t is None:
+                window['-RISE-'].update(ti.utc_iso())
+                rise_t = ti - target.ts.now()
+                rise = divmod(rise_t * 24 * 60, 60)
         else:
-            sets = ti - target.ts.now()
-            sets = divmod(sets * 24 * 60, 60)
+            if sets_t is None:
+                window['-SET-'].update(ti.utc_iso())
+                sets_t = ti - target.ts.now()
+                sets = divmod(sets_t * 24 * 60, 60)
             
     if target.is_above_horizon:
         try:
@@ -305,10 +300,17 @@ def update_target(window, data):
             sg.eprint(e)
             sg.eprint(target.ts.now().utc_datetime())
 
+
+def update_target(window, data):
+    window['-TAR_EL-'].update('{0:.2f}'.format(data[0]))
+    window['-TAR_AZ-'].update('{0:.2f}'.format(data[1]))
     window['-UTC-'].update(data[3].strftime("%Y-%m-%dT%H:%M:%SZ"))
+
     if conn.is_running():
         conn.send('E{0:.2f}\n'.format(data[0]));
         conn.send('A{0:.2f}\n'.format(data[1]));
+        
+    update_rise_set(window)
 
 
 def process_data(window, data):
