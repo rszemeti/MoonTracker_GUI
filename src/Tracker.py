@@ -237,13 +237,15 @@ def the_gui():
         if event in (sg.WIN_CLOSED, 'Exit'):
             break
         elif event == 'Connect':
-            ports = conn.get_ports()
-            portId = values['-PORT-'].device
-            if not conn.is_running():
-                conn.stop()
-                conn.set_port(portId)
-                window.start_thread(lambda: conn.run(window), ('-THREAD-', '-THREAD ENDED-'))
-                window['Connect'].update(disabled=True)
+            try:
+                portId = values['-PORT-'].device
+                if not conn.is_running():
+                    conn.stop()
+                    conn.set_port(portId)
+                    window.start_thread(lambda: conn.run(window), ('-THREAD-', '-THREAD ENDED-'))
+                    window['Connect'].update(disabled=True)
+            except:
+                sg.popup_error("Unknown serial port")
         elif event == 'Disconnect':
             window['Connect'].update(disabled=True)
             window['Track'].update(disabled=True)
