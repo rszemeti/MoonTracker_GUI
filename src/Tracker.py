@@ -6,6 +6,7 @@ from skyfield import almanac
 import time
 from datetime import timedelta, timezone
 
+SETTINGS_PATH = '.'
 
 class Target:
 
@@ -35,6 +36,14 @@ class Target:
         self.earth = self.planets['earth']
         
         # 52.388211 N, 2.304344 W, 69m above sea level
+        self.wgs = wgs84.latlon(self.lat, self.lon, self.elev)
+        self.home = self.earth + self.wgs
+        
+    def set_home(self,lat,lon,elev):
+        self.lat = lat
+        self.lon=lon
+        self.elev=elev
+        
         self.wgs = wgs84.latlon(self.lat, self.lon, self.elev)
         self.home = self.earth + self.wgs
         
@@ -76,13 +85,17 @@ class Target:
 
 class Device:
 
-    def __init__(self, baud):
-        self.baud = baud
+    def __init__(self, port, speed):
+        self.speed = speed
+        self.portId = port
         self.running = False
         self.error=''
 
     def set_port(self, port):
         self.portId = port
+
+    def set_speed(self, speed):
+        self.speed = speed
 
     def run(self, window):
         
@@ -91,7 +104,7 @@ class Device:
         try:
             self.ser = serial.Serial(
                 port=self.portId, \
-                baudrate=self.baud, \
+                baudrate=self.speed, \
                 parity=serial.PARITY_NONE, \
                 stopbits=serial.STOPBITS_ONE, \
                 bytesize=serial.EIGHTBITS, \
@@ -147,6 +160,9 @@ class Device:
     
     def get_ports(self):
         return serial.tools.list_ports.comports()
+    
+    def get_port_speeds(self):
+        return list([ 115200, 57600, 38400, 19200, 9600, 4800, 2400, 1200])
 
         
     def __del__(self):
@@ -219,8 +235,7 @@ def the_gui():
                   ]], vertical_alignment='top', expand_y=True, expand_x=True)
               ],
               [sg.Text('Next ...', key='-VERBOSE-')],
-              [sg.Text('Port'),
-                  sg.Combo(conn.get_ports(), key='-PORT-', size=(15, 1)),
+              [sg.Text('Port: '), sg.Text(conn.portId, k='-portId-'),
                   sg.Button('Connect', bind_return_key=True),
                   sg.Button('Disconnect', disabled=True),
               ]
@@ -238,14 +253,12 @@ def the_gui():
             break
         elif event == 'Connect':
             try:
-                portId = values['-PORT-'].device
                 if not conn.is_running():
                     conn.stop()
-                    conn.set_port(portId)
                     window.start_thread(lambda: conn.run(window), ('-THREAD-', '-THREAD ENDED-'))
                     window['Connect'].update(disabled=True)
             except:
-                sg.popup_error("Unknown serial port")
+                sg.popup_error("Unknown serial port: "+conn.portId)
         elif event == 'Disconnect':
             window['Connect'].update(disabled=True)
             window['Track'].update(disabled=True)
@@ -270,8 +283,76 @@ def the_gui():
                 conn.send('S\n')
             target.set_target(values['-TARGETNAME-'])
             update_rise_set(window)
+        elif event == 'Comms':
+            settings_window()
+            window['-portId-'].update(conn.portId)
+        elif event == 'Home Position':
+            location_settings_window()
     # if user exits the window, then close the window and exit the GUI func
     window.close()
+    
+    
+def make_location_window():
+
+    layout = [[sg.Text('QTH')],
+              [sg.Input(sg.user_settings_get_entry('-lat-',52.388211), size=(15), k='-lat-')],    
+              [sg.Input(sg.user_settings_get_entry('-lon-',2.304344), size=(15), k='-lon-')], 
+              [sg.Input(sg.user_settings_get_entry('-alt-',69), size=(5), k='-alt-')],          
+              [sg.Button('Save'), sg.Button('Exit without saving', k='Exit')]]
+
+    return sg.Window('Location Settings', layout)
+
+def location_settings_window():
+
+    window = make_location_window()
+
+    while True:
+        event, values = window.read()
+        if event in (sg.WINDOW_CLOSED, 'Exit'):
+            window.close()
+            break
+        if event == 'Save':
+            # Save some of the values as user settings
+            sg.user_settings_set_entry('-lat-', float(values['-lat-']))
+            sg.user_settings_set_entry('-lon-', float(values['-lon-']))
+            sg.user_settings_set_entry('-alt-', float(values['-alt-']))
+            target.set_home(
+              sg.user_settings_get_entry('-lat-') * N,
+              sg.user_settings_get_entry('-lon-') * W,
+              sg.user_settings_get_entry('-alt-')
+            )
+            window.close()
+            break;
+
+
+def make_settings_window():
+
+    layout = [[sg.Text('Serial')],
+              [sg.Listbox(conn.get_ports(), default_values=[sg.user_settings_get_entry('-port-')], size=(15, 10), k='-port-')],
+              [sg.Listbox(conn.get_port_speeds(), default_values=[sg.user_settings_get_entry('-speed-')], size=(8,1), k='-speed-')],
+              [sg.CB('Auto-connect at start', sg.user_settings_get_entry('-option1-', True), k='-auto-')],
+              [sg.Button('Save'), sg.Button('Exit without saving', k='Exit')]]
+
+    return sg.Window('Comms Settings', layout)
+
+def settings_window():
+
+    window = make_settings_window()
+
+    while True:
+        event, values = window.read()
+        if event in (sg.WINDOW_CLOSED, 'Exit'):
+            window.close()
+            break
+        if event == 'Save':
+            # Save some of the values as user settings
+            sg.user_settings_set_entry('-port-', values['-port-'][0].device)
+            sg.user_settings_set_entry('-speed-', values['-speed-'][0])
+            sg.user_settings_set_entry('-auto-', values['-auto-'])
+            conn.set_port(sg.user_settings_get_entry('-port-'))
+            conn.set_speed(sg.user_settings_get_entry('-speed-'))
+            window.close()
+            break;
 
 
 def update_rise_set(window):
@@ -348,8 +429,9 @@ def process_data(window, data):
     
     
 if __name__ == '__main__':
-    conn = Device(115200)
-    target = Target(52.388211 * N, 2.304344 * W, 69)
+    sg.user_settings_filename(path=SETTINGS_PATH)
+    conn = Device(sg.user_settings_get_entry('-port-','COM9'),sg.user_settings_get_entry('-speed-',115200))
+    target = Target(sg.user_settings_get_entry('lat',52.388211) * N, sg.user_settings_get_entry('lon',2.304344) * W, 69)
     target.set_target('Moon')
     the_gui()
 
