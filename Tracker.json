@@ -1,1 +1,1 @@
-{"-lat-": 52.388211, "-lon-": 2.304344, "-alt-": 69.0, "-port-": "COM9", "-speed-": 115200, "-auto-": true}
+{"-lat-": 52.388211, "-lon-": 2.304344, "-alt-": 69.0, "-port-": "COM9", "-speed-": 115200, "-auto-": true, "-north-": true, "-west-": true}

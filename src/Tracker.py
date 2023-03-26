@@ -1,7 +1,7 @@
 import PySimpleGUI as sg
 import serial
 import serial.tools.list_ports
-from skyfield.api import N, W, wgs84, load
+from skyfield.api import N,S,E, W, wgs84, load
 from skyfield import almanac
 import time
 from datetime import timedelta, timezone
@@ -295,8 +295,8 @@ def the_gui():
 def make_location_window():
 
     layout = [[sg.Text('QTH')],
-              [sg.Input(sg.user_settings_get_entry('-lat-',52.388211), size=(15), k='-lat-')],    
-              [sg.Input(sg.user_settings_get_entry('-lon-',2.304344), size=(15), k='-lon-')], 
+              [sg.Input(sg.user_settings_get_entry('-lat-',52.388211), size=(15), k='-lat-'), sg.Radio('North','north',key='-north-', default=sg.user_settings_get_entry('-north-',True)),sg.Radio('South','north',key='-south-', default=not sg.user_settings_get_entry('-north-',True))],    
+              [sg.Input(sg.user_settings_get_entry('-lon-',2.304344), size=(15), k='-lon-'), sg.Radio('West','west',key='-west-', default=sg.user_settings_get_entry('-east-',True)),sg.Radio('East','west',key='-east-',default=not sg.user_settings_get_entry('-east-',True))],
               [sg.Input(sg.user_settings_get_entry('-alt-',69), size=(5), k='-alt-')],          
               [sg.Button('Save'), sg.Button('Exit without saving', k='Exit')]]
 
@@ -316,9 +316,11 @@ def location_settings_window():
             sg.user_settings_set_entry('-lat-', float(values['-lat-']))
             sg.user_settings_set_entry('-lon-', float(values['-lon-']))
             sg.user_settings_set_entry('-alt-', float(values['-alt-']))
+            sg.user_settings_set_entry('-north-', values['-north-'])
+            sg.user_settings_set_entry('-west-', values['-west-'])
             target.set_home(
-              sg.user_settings_get_entry('-lat-') * N,
-              sg.user_settings_get_entry('-lon-') * W,
+              sg.user_settings_get_entry('-lat-') * (N if sg.user_settings_get_entry('-north-') else S),
+              sg.user_settings_get_entry('-lon-') * (W if sg.user_settings_get_entry('-west-') else E),
               sg.user_settings_get_entry('-alt-')
             )
             window.close()
@@ -431,7 +433,7 @@ def process_data(window, data):
 if __name__ == '__main__':
     sg.user_settings_filename(path=SETTINGS_PATH)
     conn = Device(sg.user_settings_get_entry('-port-','COM9'),sg.user_settings_get_entry('-speed-',115200))
-    target = Target(sg.user_settings_get_entry('lat',52.388211) * N, sg.user_settings_get_entry('lon',2.304344) * W, 69)
+    target = Target(sg.user_settings_get_entry('lat',52.388211) * (N if sg.user_settings_get_entry('-north-', True) else S), sg.user_settings_get_entry('lon',2.304344) * (W if sg.user_settings_get_entry('-west-', True) else E), 69)
     target.set_target('Moon')
     the_gui()
 
