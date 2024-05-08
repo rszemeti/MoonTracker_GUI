@@ -26,13 +26,13 @@ const unsigned int directionPin[] = { 3,4 };
 const unsigned int pwmPin[] = { 5,6 };
 
 // P values for PID loop
-const unsigned int P[] = { 100,100 };
+const unsigned int P[] = { 10000,10000 };
 // I values for PID loop ... not implemented yet, will be.
 const unsigned int I[] = { 0,0 };
 // D values for PID loop ... not implemented yet, may never be
 const unsigned int D[] = { 0,0 };
 
-#define DEAD_ZONE 0.2
+#define DEAD_ZONE 0.05
 #define AVERAGE_COUNT 200
 
 /*
